@@ -3,7 +3,7 @@ pipeline {
 
     tools {
         maven 'Maven3'       // Make sure "Maven3" is installed & configured in Jenkins
-        jdk 'Java11'         // Make sure "Java11" is installed & configured in Jenkins
+        jdk 'Java17'         // Make sure "Java11" is installed & configured in Jenkins
     }
 
     stages {
