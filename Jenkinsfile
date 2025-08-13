@@ -40,6 +40,6 @@ pipeline {
         }
         failure {
             echo '❌ Build failed. Check console output for errors.'
-        }
-    }
+        }
+    }
 }
