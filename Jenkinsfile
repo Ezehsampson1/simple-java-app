@@ -35,10 +35,10 @@ pipeline {
     
     post {
        success {
-            echo '✅ Build successful! .jar file archived and ready for download.'
+            echo '✅ Build successful! .jar file archived and ready for download'
         }
         failure {
-            echo '❌ Build failed. Check console output for errors.'
+            echo '❌ Build failed. Check console output for errors'
         }
     }
 }
