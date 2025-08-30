@@ -10,7 +10,8 @@ pipeline {
     
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Ezehsampson1/simple-java-app.git'
+                git branch: 'main', url: 'https://github.com/Ezehsampson1/simple-java-app.git', credentialsId: 'github-creds'
+                
             }
         }
         
