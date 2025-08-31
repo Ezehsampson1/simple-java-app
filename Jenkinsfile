@@ -1,46 +1,64 @@
 pipeline {
     agent any
-    
-    tools {
-        git 'Default'
-        maven 'Maven3'
+
+    environment {
+        AWS_REGION     = "us-east-1"   // Change to your AWS region
+        AWS_ACCOUNT_ID = "927788617166" // Replace with your AWS account ID
+        ECR_REPO_NAME  = "simple-java-app"
+        IMAGE_TAG      = "latest"
+        CLUSTER_NAME   = "simple-java-cluster"   // Your ECS Cluster
+        SERVICE_NAME   = "simple-java-service"   // Your ECS Service
     }
-    
+
     stages {
-    
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Ezehsampson1/simple-java-app.git', credentialsId: 'github-creds'
-                
+                git 'https://github.com/Ezehsampson1/simple-java-app.git'
             }
         }
-        
-        stage('Build') {
+
+        stage('Build JAR with Maven') {
             steps {
-                sh 'mvn clean install'
+                sh 'mvn clean package'
             }
         }
-        
-        stage('Test') {
+
+        stage('Build Docker Image') {
             steps {
-                sh 'mvn test'
+                sh """
+                docker build -t $ECR_REPO_NAME:$IMAGE_TAG .
+                """
             }
         }
-        
-        stage('Package') {
+
+        stage('Login to ECR') {
             steps {
-                sh 'mvn package'
+                sh """
+                aws ecr get-login-password --region $AWS_REGION \
+                | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                """
             }
         }
-        
-    }
-    
-    post {
-       success {
-            echo '✅ Build successful! .jar file archived and ready for download'
+
+        stage('Tag & Push Image to ECR') {
+            steps {
+                sh """
+                docker tag $ECR_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
+                docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
+                """
+            }
         }
-        failure {
-            echo '❌ Build failed. Check console output for errors'
+
+        stage('Deploy to ECS') {
+            steps {
+                sh """
+                aws ecs update-service \
+                    --cluster $CLUSTER_NAME \
+                    --service $SERVICE_NAME \
+                    --force-new-deployment \
+                    --region $AWS_REGION
+                """
+            }
         }
     }
 }
