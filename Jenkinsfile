@@ -2,7 +2,7 @@ pipeline {
     agent any
 	
 	tools {
-        git 'Default'
+        git 'Node'
         maven 'Maven3'
     }
 
