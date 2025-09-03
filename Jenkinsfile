@@ -1,69 +1,45 @@
 pipeline {
     agent any
-	
-	tools {
-        git 'Default'
-        maven 'Maven3'
+    
+    tools {
+        maven 'Maven3'  
     }
+    
+    stages{
+        
+        stage('Build maven') {
+            steps {
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Ezehsampson1/simple-java-app']])
+                sh 'mvn clean install'
+            }
+        }
 
-    environment {
-        AWS_REGION     = "us-east-1"   // Change to your AWS region
-        AWS_ACCOUNT_ID = "927788617166" // Replace with your AWS account ID
-        ECR_REPO_NAME  = "simple-java-app"
-        IMAGE_TAG      = "latest"
-        CLUSTER_NAME   = "simple-java-cluster"   // Your ECS Cluster
-        SERVICE_NAME   = "simple-java-service"   // Your ECS Service
+        stage('Build docker image') {
+            steps {
+                script {
+                    sh 'docker build -t simple-java-app-private .'
+                }
+            }
+        }
+
+        stage('Push image to ECR') {
+            steps {
+                sh '''
+                    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 927788617166.dkr.ecr.us-east-1.amazonaws.com
+                    docker tag simple-java-app-private:latest 927788617166.dkr.ecr.us-east-1.amazonaws.com/simple-java-app-private:latest
+                    docker push 927788617166.dkr.ecr.us-east-1.amazonaws.com/simple-java-app-private:latest
+                '''
+            }
+        }
+        
     }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                git 'https://github.com/Ezehsampson1/simple-java-app.git'
-            }
+    
+    post {
+        success {
+            echo '✅ Build successful! .jar file archived and ready for download'
         }
-
-        stage('Build JAR with Maven') {
-            steps {
-                sh 'mvn clean package'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh """
-                docker build -t $ECR_REPO_NAME:$IMAGE_TAG .
-                """
-            }
-        }
-
-        stage('Login to ECR') {
-            steps {
-                sh """
-                aws ecr get-login-password --region $AWS_REGION \
-                | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-                """
-            }
-        }
-
-        stage('Tag & Push Image to ECR') {
-            steps {
-                sh """
-                docker tag $ECR_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
-                docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
-                """
-            }
-        }
-
-        stage('Deploy to ECS') {
-            steps {
-                sh """
-                aws ecs update-service \
-                    --cluster $CLUSTER_NAME \
-                    --service $SERVICE_NAME \
-                    --force-new-deployment \
-                    --region $AWS_REGION
-                """
-            }
+        failure {
+            echo '❌ Build failed. Check console output for errors!'
         }
     }
 }
