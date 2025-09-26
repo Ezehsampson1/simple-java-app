@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     tools {
-        maven 'Maven3'  
+        maven 'Maven-3'  
     }
     
     stages{
@@ -26,8 +26,8 @@ pipeline {
             steps {
                 sh '''
                     aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 927788617166.dkr.ecr.us-east-1.amazonaws.com
-                    docker tag simple-java-app-private:latest 927788617166.dkr.ecr.us-east-1.amazonaws.com/simple-java-app-private:latest
-                    docker push 927788617166.dkr.ecr.us-east-1.amazonaws.com/simple-java-app-private:latest
+                    docker tag simple-java-app:latest 927788617166.dkr.ecr.us-east-1.amazonaws.com/simple-java-app:latest
+                    docker push 927788617166.dkr.ecr.us-east-1.amazonaws.com/simple-java-app:latest
                 '''
             }
         }
